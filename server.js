@@ -253,6 +253,37 @@ app.delete('/api/appointments/:id', (req, res) => {
   });
 });
 
+// GET /api/export-csv (Para descargas automatizadas)
+app.get('/api/export-csv', (req, res) => {
+  const query = 'SELECT a.date, a.time, s.name as specialist_name, s.specialty, a.patient_name, a.insurance, a.patient_contact, a.reason FROM appointments a LEFT JOIN specialists s ON a.specialist_id = s.id ORDER BY a.date, a.time';
+
+  db.all(query, [], (err, rows) => {
+    if (err) return sendError(res, 500, err.message);
+
+    // Header del CSV
+    let csv = 'Fecha,Hora,Especialista,Especialidad,Paciente,Prevision,Contacto,Motivo\n';
+
+    // Filas del CSV
+    rows.forEach(row => {
+      const line = [
+        row.date,
+        row.time,
+        `"${row.specialist_name}"`,
+        `"${row.specialty}"`,
+        `"${row.patient_name}"`,
+        `"${row.insurance || '-'}"`,
+        `"${row.patient_contact || '-'}"`,
+        `"${row.reason || '-'}"`
+      ].join(',');
+      csv += line + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=Reporte_Kmina_' + new Date().toISOString().split('T')[0] + '.csv');
+    res.status(200).send(csv);
+  });
+});
+
 app.listen(PORT, () => {
   initDb();
   console.log(`Server listening on http://localhost:${PORT}`);
