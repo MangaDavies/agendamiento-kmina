@@ -705,16 +705,14 @@ label {
 
 .footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
   margin-bottom: 40px;
 }
 
 .footer-logo {
   height: 80px;
   margin-bottom: 15px;
-  filter: brightness(0) invert(1);
-  /* Make logo white if it's dark */
 }
 
 .footer-brand p {
@@ -751,6 +749,14 @@ label {
 .footer-links a:hover {
   color: white;
   text-decoration: underline;
+}
+
+.footer-map h3 {
+  font-family: 'Playfair Display', serif;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-block;
+  padding-bottom: 5px;
 }
 
 .footer-links {
