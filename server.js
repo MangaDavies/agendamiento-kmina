@@ -212,7 +212,7 @@ app.post('/api/appointments', (req, res) => {
       db.get('SELECT name FROM specialists WHERE id = ?', [specialist_id], (e, srow) => {
         const specialistName = srow ? srow.name : 'especialista';
         const msg = `Confirmo cita con ${specialistName} el ${date} a las ${time} para ${patient_name}. Motivo: ${reason || '-'}, Previsión: ${insurance || '-'}`;
-        const whatsapp_url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+        const whatsapp_url = 'https://wa.me/56920715811?text=' + encodeURIComponent(msg);
         res.json({ id: this.lastID, specialist_id, date, time, patient_name, patient_contact, reason, insurance, whatsapp_url });
       });
     });
@@ -237,8 +237,8 @@ app.put('/api/appointments/:id', (req, res) => {
         db.get('SELECT name FROM specialists WHERE id = ?', [specialist_id], (e, srow) => {
           const specialistName = srow ? srow.name : 'especialista';
           const msg = `Confirmo cita con ${specialistName} el ${date} a las ${time} para ${patient_name}. Motivo: ${reason || '-'}`;
-          const whatsapp_url = 'https://wa.me/?text=' + encodeURIComponent(msg);
-          res.json({ id, specialist_id, date, time, patient_name, patient_contact, reason, insurance, whatsapp_url });
+          const whatsapp_url = 'https://wa.me/56920715811?text=' + encodeURIComponent(msg);
+          res.json({ id: id, specialist_id, date, time, patient_name, patient_contact, reason, insurance, whatsapp_url });
         });
       });
   });
