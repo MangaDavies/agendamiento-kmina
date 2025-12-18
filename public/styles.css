@@ -779,7 +779,12 @@ label {
   }
 }
 
-.footer-contact p {
-  justify-content: center;
-}
+@media (max-width: 600px) {
+  .footer-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .footer-contact p {
+    justify-content: center;
+  }
 }
