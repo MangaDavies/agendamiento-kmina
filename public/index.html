@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kmina Salud | Reserva de Horas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Poppins:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="main-header">
+    <div class="container header-content">
+      <div class="logo">
+        <img src="Logo.png" alt="Kmina Salud" class="logo-img">
+      </div>
+      <nav>
+        <a href="#sectionClient" class="nav-link">Inicio</a>
+        <a href="#services" class="nav-link">Especialidades</a>
+        <a href="#about" class="nav-link">Nosotros</a>
+        <button id="navRequestBtn" class="nav-link active">Agendar Cita</button>
+        <button id="navAdminBtn" class="nav-link">Administración</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- CLIENT SECTION: WRAPPER -->
+    <section id="sectionClient" class="fade-in">
+
+      <!-- HERO -->
+      <div class="hero">
+        <h1>Bienvenido a Kmina Salud</h1>
+        <p>Tu bienestar físico y mental en manos de expertos.</p>
+        <button onclick="document.getElementById('bookingScrollTarget').scrollIntoView({behavior: 'smooth'})"
+          class="btn btn-primary" style="margin-top: 20px;">Reservar Ahora</button>
+      </div>
+
+      <!-- SERVICES (Cards) -->
+      <section id="services" class="content-section">
+        <h2>Nuestras Especialidades</h2>
+        <div class="cards-grid">
+
+          <div class="service-card">
+            <div class="img-wrapper">
+              <img src="Images/Kine.png" alt="Kinesiología">
+            </div>
+            <h3>Kinesiología</h3>
+            <p>Recupera tu movimiento y funcionalidad con tratamientos personalizados.</p>
+          </div>
+
+          <div class="service-card">
+            <div class="img-wrapper">
+              <img src="Images/Psico.png" alt="Psicología">
+            </div>
+            <h3>Psicología</h3>
+            <p>Apoyo emocional y herramientas para tu salud mental.</p>
+          </div>
+
+          <div class="service-card">
+            <div class="img-wrapper">
+              <img src="Images/terapia.png" alt="Terapia Ocupacional">
+            </div>
+            <h3>Terapia Ocupacional</h3>
+            <p>Mejora tu autonomía y calidad de vida en las actividades diarias.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ABOUT US -->
+      <section id="about" class="content-section row-layout">
+        <div class="text-col">
+          <h2>Quiénes Somos</h2>
+          <p>
+            Somos un equipo interdisciplinario dedicado a mejorar la calidad de vida de nuestros pacientes.
+            En Kmina Salud, creemos en una atención integral que une el cuerpo y la mente.
+          </p>
+          <p>
+            Liderados por profesionales apasionados, buscamos entregar un servicio cercano, profesional y de excelencia.
+          </p>
+        </div>
+        <div class="img-col">
+          <img src="Images/erick.png" alt="Equipo Kmina" class="rounded-img shadow-strong">
+        </div>
+      </section>
+
+      <!-- COMMITMENT -->
+      <section id="commitment" class="content-section text-center bg-soft">
+        <h2>Nuestro Compromiso</h2>
+        <p class="commitment-text">
+          "Acompañarte en cada paso de tu recuperación y bienestar, brindándote las herramientas
+          y el apoyo profesional que necesitas para vivir plenamente."
+        </p>
+      </section>
+
+      <!-- BOOKING ANCHOR -->
+      <div id="bookingScrollTarget" style="padding-top: 50px;"></div>
+      <div class="hero">
+        <h2>Agenda tu Hora</h2>
+        <p>Selecciona tu especialista y encuentra el horario que más te acomode.</p>
+      </div>
+
+      <div class="card booking-card">
+        <div class="form-group">
+          <label for="specialtyFilter">Especialidad</label>
+          <select id="specialtyFilter" class="input-field">
+            <option value="" disabled selected>Seleccione Especialidad...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="specialist">Especialista</label>
+          <select id="specialist" class="input-field" disabled>
+            <option value="" disabled selected>Primero seleccione especialidad...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="date">Fecha</label>
+          <input type="date" id="date" class="input-field">
+        </div>
+
+        <button id="checkSlots" class="btn btn-primary full-width">Buscar Horarios Disponibles</button>
+      </div>
+
+      <div id="slotsContainer" class="slots-container" hidden>
+        <h2>Horarios Disponibles</h2>
+        <div id="slotList" class="slot-grid"></div>
+      </div>
+
+      <!-- Booking Form Modal / Inline -->
+      <div id="bookForm" class="modal-overlay" hidden>
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Confirmar Reserva</h2>
+            <button id="closeBookForm" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="summary-info">
+              <p><strong>Especialista:</strong> <span id="selectedSpecialist"></span></p>
+              <p><strong>Fecha:</strong> <span id="selectedDate"></span></p>
+              <p><strong>Hora:</strong> <span id="selectedTime"></span></p>
+            </div>
+            <form id="appointmentForm">
+              <div class="form-group">
+                <label for="patientName">Nombre y Apellido</label>
+                <input id="patientName" class="input-field" placeholder="Nombre completo" required>
+              </div>
+              <div class="form-group">
+                <label for="patientContact">Contacto</label>
+                <input id="patientContact" class="input-field" placeholder="Teléfono o Email">
+              </div>
+              <div class="form-group">
+                <label>Previsión</label>
+                <select id="patientInsurance" class="input-field">
+                  <option value="Fonasa">Fonasa</option>
+                  <option value="Isapre">Isapre</option>
+                  <option value="Particular">Particular</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Motivo de Consulta</label>
+                <textarea id="patientReason" class="input-field" rows="2" placeholder="Breve descripción..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary full-width">Confirmar Reserva</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay" hidden>
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Acceso Administrativo</h2>
+          <button id="closeLoginModal" class="close-btn">&times;</button>
+        </div>
+        <form id="loginForm">
+          <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="adminPassword" class="input-field" placeholder="Ingrese clave..." required>
+          </div>
+          <button type="submit" class="btn btn-primary full-width">Ingresar</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADMIN SECTION: MANAGE -->
+    <section id="sectionAdmin" class="fade-in" hidden>
+      <div class="admin-grid">
+
+        <!-- Dashboard / Summary -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Resumen de Atenciones</h2>
+            <button id="exportExcel" class="btn btn-sm btn-primary">Exportar a Excel</button>
+          </div>
+          <div id="dashboardStats" class="table-responsive">
+            <!-- Stats injected here -->
+            <p>Calculando...</p>
+          </div>
+        </div>
+
+        <!-- Manage Appointments -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Gestión de Citas</h2>
+            <button id="refreshAppts" class="btn btn-sm btn-outline">Actualizar</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Especialista</th>
+                  <th>Paciente</th>
+                  <th>Contacto</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="appointmentsList">
+                <!-- Rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right Column: Specialists Management -->
+        <div class="admin-right-col">
+
+          <!-- Specialist List -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Especialistas</h2>
+              <button id="refreshSpecs" class="btn btn-sm btn-outline">Actualizar</button>
+            </div>
+            <ul id="specialistsList" class="simple-list"></ul>
+          </div>
+
+          <!-- Create Specialist -->
+          <div class="card">
+            <h2>Agregar Especialista</h2>
+            <form id="specialistForm">
+              <div class="form-group">
+                <label>Nombre</label>
+                <input id="spName" class="input-field" required>
+              </div>
+              <div class="form-group">
+                <label>Especialidad</label>
+                <input id="spSpecialty" class="input-field" required>
+              </div>
+              <div class="row">
+                <div class="form-group">
+                  <label>Inicio</label>
+                  <input id="spStart" class="input-field" placeholder="08:00" required pattern="\d{2}:\d{2}">
+                </div>
+                <div class="form-group">
+                  <label>Fin</label>
+                  <input id="spEnd" class="input-field" placeholder="20:00" required pattern="\d{2}:\d{2}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Duración Bloque (min)</label>
+                <input id="spSlot" type="number" class="input-field" value="30">
+              </div>
+              <button type="submit" class="btn btn-secondary full-width">Crear Especialista</button>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Image Preview Modal -->
+  <div id="imageModal" class="modal-overlay" hidden>
+    <div class="modal preview-modal">
+      <button id="closeImageModal" class="close-btn">&times;</button>
+      <img id="previewImage" src="" alt="Vista previa" class="preview-img-full">
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
