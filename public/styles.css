@@ -705,9 +705,10 @@ label {
 
 .footer-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 30px;
+  grid-template-columns: 1.5fr 1fr 1.5fr 2fr;
+  gap: 40px;
   margin-bottom: 40px;
+  align-items: start;
 }
 
 .footer-logo {
@@ -723,12 +724,14 @@ label {
 }
 
 .footer-contact h3,
-.footer-links h3 {
+.footer-links h3,
+.footer-map h3 {
   font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  display: inline-block;
-  padding-bottom: 5px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  display: block;
+  padding-bottom: 10px;
 }
 
 .footer-contact p {
@@ -751,13 +754,6 @@ label {
   text-decoration: underline;
 }
 
-.footer-map h3 {
-  font-family: 'Playfair Display', serif;
-  margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  display: inline-block;
-  padding-bottom: 5px;
-}
 
 .footer-links {
   display: flex;
@@ -776,12 +772,14 @@ label {
   opacity: 0.6;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .footer-content {
-    text-align: center;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
   }
+}
 
-  .footer-contact p {
-    justify-content: center;
-  }
+.footer-contact p {
+  justify-content: center;
+}
 }
