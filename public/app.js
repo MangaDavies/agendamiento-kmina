@@ -52,6 +52,17 @@ function switchTab(tab) {
 }
 
 navRequestBtn.addEventListener('click', () => switchTab('client'));
+
+// Handle other nav links (Inicio, Especialidades, Nosotros)
+document.querySelectorAll('.nav-link[href^="#"]').forEach(link => {
+  link.addEventListener('click', (e) => {
+    // If we are in Admin section, switch back to Client first
+    if (!sectionAdmin.hidden) {
+      switchTab('client');
+    }
+  });
+});
+
 if (navAdminBtn) {
   navAdminBtn.addEventListener('click', () => {
     // Show login modal instead of switching immediately
