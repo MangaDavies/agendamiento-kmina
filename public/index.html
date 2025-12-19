@@ -253,6 +253,23 @@
         </div>
       </div>
 
+      <!-- Additional Reports Row -->
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2>📊 Distribución por Previsión</h2>
+          </div>
+          <canvas id="chartInsurance"></canvas>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2>⏰ Horarios Más Solicitados</h2>
+          </div>
+          <canvas id="chartPeakHours"></canvas>
+        </div>
+      </div>
+
       <!-- Main Content Grid -->
       <div class="admin-main-grid">
 
@@ -262,10 +279,43 @@
             <div class="card-header">
               <h2>Gestión de Citas</h2>
               <div class="header-actions">
+                <button id="toggleView" class="btn btn-sm btn-outline">📅 Vista Calendario</button>
                 <button id="refreshAppts" class="btn btn-sm btn-outline">🔄 Actualizar</button>
                 <button id="exportExcel" class="btn btn-sm btn-primary">📊 Exportar Excel</button>
               </div>
             </div>
+
+            <!-- Search and Filter Controls -->
+            <div class="filter-panel">
+              <div class="filter-row">
+                <div class="filter-group">
+                  <label>🔍 Buscar Paciente</label>
+                  <input type="text" id="searchPatient" class="input-field" placeholder="Nombre del paciente...">
+                </div>
+
+                <div class="filter-group">
+                  <label>📅 Desde</label>
+                  <input type="date" id="filterDateFrom" class="input-field">
+                </div>
+
+                <div class="filter-group">
+                  <label>📅 Hasta</label>
+                  <input type="date" id="filterDateTo" class="input-field">
+                </div>
+
+                <div class="filter-group">
+                  <label>👨‍⚕️ Especialista</label>
+                  <select id="filterSpecialist" class="input-field">
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <button id="clearFilters" class="btn btn-sm btn-outline" style="margin-top: 24px;">✖️ Limpiar</button>
+                </div>
+              </div>
+            </div>
+
             <div class="table-responsive">
               <table class="data-table compact-table">
                 <thead>
@@ -282,6 +332,23 @@
                   <!-- Rows injected by JS -->
                 </tbody>
               </table>
+            </div>
+
+            <!-- Calendar View (initially hidden) -->
+            <div id="calendarView" class="calendar-view" hidden>
+              <div class="calendar-header">
+                <button id="prevMonth" class="btn btn-sm btn-outline">◀ Anterior</button>
+                <h3 id="currentMonth">Mes Actual</h3>
+                <button id="nextMonth" class="btn btn-sm btn-outline">Siguiente ▶</button>
+              </div>
+              <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar will be rendered here by JS -->
+              </div>
+              <div class="calendar-legend">
+                <span class="legend-item"><span class="legend-dot" style="background: var(--primary);"></span> Citas
+                  programadas</span>
+                <span class="legend-item"><span class="legend-dot" style="background: #e0e0e0;"></span> Sin citas</span>
+              </div>
             </div>
           </div>
         </div>
@@ -328,11 +395,135 @@
             </form>
           </div>
 
+          <!-- Create Appointment Manually -->
+          <div class="card compact-card">
+            <h2>📞 Agendar Cita Manual</h2>
+            <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 15px;">Para pacientes que llaman por teléfono
+            </p>
+            <form id="manualAppointmentForm">
+              <div class="form-group">
+                <label>Especialidad</label>
+                <select id="manualSpecialty" class="input-field" required>
+                  <option value="" disabled selected>Seleccione Especialidad...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Especialista</label>
+                <select id="manualSpecialist" class="input-field" required disabled>
+                  <option value="" disabled selected>Primero seleccione especialidad...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" id="manualDate" class="input-field" required>
+              </div>
+
+              <div class="form-group">
+                <label>Hora</label>
+                <input type="time" id="manualTime" class="input-field" required>
+              </div>
+
+              <div class="form-group">
+                <label>Nombre del Paciente</label>
+                <input id="manualPatientName" class="input-field" placeholder="Nombre completo" required>
+              </div>
+
+              <div class="form-group">
+                <label>Contacto</label>
+                <input id="manualPatientContact" class="input-field" placeholder="Teléfono o Email" required>
+              </div>
+
+              <div class="form-group">
+                <label>Previsión</label>
+                <select id="manualPatientInsurance" class="input-field">
+                  <option value="Fonasa">Fonasa</option>
+                  <option value="Isapre">Isapre</option>
+                  <option value="Particular">Particular</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Motivo de Consulta</label>
+                <textarea id="manualPatientReason" class="input-field" rows="2"
+                  placeholder="Breve descripción..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary full-width">📅 Crear Cita</button>
+            </form>
+          </div>
+
         </div>
 
       </div>
     </section>
   </main>
+
+  <!-- Edit Appointment Modal -->
+  <div id="editAppointmentModal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>✏️ Editar Cita</h2>
+        <button id="closeEditModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editAppointmentForm">
+          <input type="hidden" id="editApptId">
+
+          <div class="form-group">
+            <label for="editSpecialty">Especialidad</label>
+            <select id="editSpecialty" class="input-field" required>
+              <option value="" disabled selected>Seleccione Especialidad...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editSpecialist">Especialista</label>
+            <select id="editSpecialist" class="input-field" required disabled>
+              <option value="" disabled selected>Primero seleccione especialidad...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editDate">Fecha</label>
+            <input type="date" id="editDate" class="input-field" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editTime">Hora</label>
+            <input type="time" id="editTime" class="input-field" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editPatientName">Nombre del Paciente</label>
+            <input id="editPatientName" class="input-field" placeholder="Nombre completo" required>
+          </div>
+
+          <div class="form-group">
+            <label for="editPatientContact">Contacto</label>
+            <input id="editPatientContact" class="input-field" placeholder="Teléfono o Email">
+          </div>
+
+          <div class="form-group">
+            <label for="editPatientInsurance">Previsión</label>
+            <select id="editPatientInsurance" class="input-field">
+              <option value="Fonasa">Fonasa</option>
+              <option value="Isapre">Isapre</option>
+              <option value="Particular">Particular</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editPatientReason">Motivo de Consulta</label>
+            <textarea id="editPatientReason" class="input-field" rows="3" placeholder="Breve descripción..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary full-width">💾 Guardar Cambios</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- Image Preview Modal -->
   <div id="imageModal" class="modal-overlay" hidden>

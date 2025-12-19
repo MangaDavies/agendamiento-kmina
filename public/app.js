@@ -233,44 +233,259 @@ document.getElementById('appointmentForm').addEventListener('submit', async (e) 
 
 // --- Admin Logic ---
 let currentAppointments = [];
+let filteredAppointments = []; // For storing filtered results
 
 async function loadAppointments() {
   const tbody = document.getElementById('appointmentsList');
   tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
   try {
     currentAppointments = await fetchJSON('/api/appointments');
-    loadDashboard(); // Update stats whenever appts load
-
-    tbody.innerHTML = '';
-    if (currentAppointments.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6">No hay citas registradas.</td></tr>';
-      return;
-    }
-    currentAppointments.forEach(a => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${a.date}</td>
-        <td>${a.time}</td>
-        <td>${a.specialist_name} <br> <small class="text-light">${a.specialty}</small></td>
-        <td>
-           ${a.patient_name} <br> 
-           <small>Prev: ${a.insurance || '-'}</small>
-        </td>
-        <td>${a.patient_contact || '-'}</td>
-        <td>
-          <button class="btn btn-sm btn-outline" style="color:red; border-color:red" onclick="deleteAppointment(${a.id})">Eliminar</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
+    applyFilters(); // Apply filters after loading
   } catch (err) {
     showToast('Error cargando citas: ' + err.message, 'error');
   }
 }
 
+function applyFilters() {
+  const searchText = document.getElementById('searchPatient').value.toLowerCase();
+  const dateFrom = document.getElementById('filterDateFrom').value;
+  const dateTo = document.getElementById('filterDateTo').value;
+  const specialistId = document.getElementById('filterSpecialist').value;
+
+  filteredAppointments = currentAppointments.filter(a => {
+    // Search by patient name
+    if (searchText && !a.patient_name.toLowerCase().includes(searchText)) {
+      return false;
+    }
+
+    // Filter by date range
+    if (dateFrom && a.date < dateFrom) {
+      return false;
+    }
+    if (dateTo && a.date > dateTo) {
+      return false;
+    }
+
+    // Filter by specialist
+    if (specialistId && a.specialist_id !== Number(specialistId)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  renderAppointments();
+  loadDashboard(); // Update stats with filtered data
+}
+
+function renderAppointments() {
+  const tbody = document.getElementById('appointmentsList');
+  tbody.innerHTML = '';
+
+  const dataToRender = filteredAppointments.length > 0 || hasActiveFilters()
+    ? filteredAppointments
+    : currentAppointments;
+
+  if (dataToRender.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">No hay citas que coincidan con los filtros.</td></tr>';
+    return;
+  }
+
+  dataToRender.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${a.date}</td>
+      <td>${a.time}</td>
+      <td>${a.specialist_name} <br> <small class="text-light">${a.specialty}</small></td>
+      <td>
+         ${a.patient_name} <br> 
+         <small>Prev: ${a.insurance || '-'}</small>
+      </td>
+      <td>${a.patient_contact || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" style="color:#0891b2; border-color:#0891b2; margin-right: 5px;" onclick="editAppointment(${a.id})">✏️ Editar</button>
+        <button class="btn btn-sm btn-outline" style="color:red; border-color:red" onclick="deleteAppointment(${a.id})">🗑️ Eliminar</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function hasActiveFilters() {
+  return document.getElementById('searchPatient').value ||
+    document.getElementById('filterDateFrom').value ||
+    document.getElementById('filterDateTo').value ||
+    document.getElementById('filterSpecialist').value;
+}
+
+function populateFilterSpecialists() {
+  const filterSpecialistSel = document.getElementById('filterSpecialist');
+  filterSpecialistSel.innerHTML = '<option value="">Todos</option>';
+
+  allSpecialists.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = `${s.name} (${s.specialty})`;
+    filterSpecialistSel.appendChild(opt);
+  });
+}
+
+// Filter event listeners
+document.getElementById('searchPatient').addEventListener('input', applyFilters);
+document.getElementById('filterDateFrom').addEventListener('change', applyFilters);
+document.getElementById('filterDateTo').addEventListener('change', applyFilters);
+document.getElementById('filterSpecialist').addEventListener('change', applyFilters);
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('searchPatient').value = '';
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  document.getElementById('filterSpecialist').value = '';
+  applyFilters();
+});
+
+// --- Calendar View Logic ---
+let currentCalendarDate = new Date();
+let isCalendarView = false;
+
+function toggleView() {
+  isCalendarView = !isCalendarView;
+  const tableView = document.querySelector('.table-responsive');
+  const calendarView = document.getElementById('calendarView');
+  const toggleBtn = document.getElementById('toggleView');
+
+  if (isCalendarView) {
+    tableView.hidden = true;
+    calendarView.hidden = false;
+    toggleBtn.textContent = '📋 Vista Tabla';
+    renderCalendar();
+  } else {
+    tableView.hidden = false;
+    calendarView.hidden = true;
+    toggleBtn.textContent = '📅 Vista Calendario';
+  }
+}
+
+function renderCalendar() {
+  const year = currentCalendarDate.getFullYear();
+  const month = currentCalendarDate.getMonth();
+
+  // Update month header
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
+
+  // Get first day of month and number of days
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday
+
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+
+  // Add day headers
+  const dayHeaders = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  dayHeaders.forEach(day => {
+    const header = document.createElement('div');
+    header.className = 'calendar-day-header';
+    header.textContent = day;
+    grid.appendChild(header);
+  });
+
+  // Add empty cells for days before month starts
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    const emptyDay = document.createElement('div');
+    emptyDay.className = 'calendar-day other-month';
+    grid.appendChild(emptyDay);
+  }
+
+  // Add days of the month
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    const dateStr = date.toISOString().split('T')[0];
+
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+
+    if (dateStr === todayStr) {
+      dayCell.classList.add('today');
+    }
+
+    // Day number
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.textContent = day;
+    dayCell.appendChild(dayNumber);
+
+    // Get appointments for this day
+    const dataToUse = filteredAppointments.length > 0 || hasActiveFilters()
+      ? filteredAppointments
+      : currentAppointments;
+
+    const dayAppointments = dataToUse.filter(a => a.date === dateStr);
+
+    if (dayAppointments.length > 0) {
+      const appointmentsContainer = document.createElement('div');
+      appointmentsContainer.className = 'calendar-appointments';
+
+      // Show first 3 appointments, then count
+      const maxShow = 3;
+      dayAppointments.slice(0, maxShow).forEach(appt => {
+        const apptDiv = document.createElement('div');
+        apptDiv.className = 'calendar-appointment';
+        apptDiv.textContent = `${appt.time} ${appt.patient_name}`;
+        apptDiv.title = `${appt.specialist_name} - ${appt.patient_name}`;
+        apptDiv.onclick = (e) => {
+          e.stopPropagation();
+          editAppointment(appt.id);
+        };
+        appointmentsContainer.appendChild(apptDiv);
+      });
+
+      if (dayAppointments.length > maxShow) {
+        const countDiv = document.createElement('div');
+        countDiv.className = 'calendar-appointment-count';
+        countDiv.textContent = `+${dayAppointments.length - maxShow} más`;
+        appointmentsContainer.appendChild(countDiv);
+      }
+
+      dayCell.appendChild(appointmentsContainer);
+    }
+
+    // Click handler for day
+    dayCell.onclick = () => {
+      // Filter appointments for this day
+      document.getElementById('filterDateFrom').value = dateStr;
+      document.getElementById('filterDateTo').value = dateStr;
+      applyFilters();
+      toggleView(); // Switch back to table view to see filtered results
+    };
+
+    grid.appendChild(dayCell);
+  }
+}
+
+document.getElementById('toggleView').addEventListener('click', toggleView);
+
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+  renderCalendar();
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+  renderCalendar();
+});
+
 // Chart instances (global to allow updates)
 let chartSpecialists = null;
 let chartWeekly = null;
+let chartInsurance = null;
+let chartPeakHours = null;
 
 function loadDashboard() {
   if (currentAppointments.length === 0) {
@@ -394,6 +609,109 @@ function updateCharts() {
           beginAtZero: true,
           ticks: {
             stepSize: 1
+          }
+        }
+      }
+    }
+  });
+
+  // Chart 3: Insurance Distribution (Pie Chart)
+  const insuranceCounts = {};
+  currentAppointments.forEach(a => {
+    const insurance = a.insurance || 'Sin especificar';
+    insuranceCounts[insurance] = (insuranceCounts[insurance] || 0) + 1;
+  });
+
+  const insuranceLabels = Object.keys(insuranceCounts);
+  const insuranceData = Object.values(insuranceCounts);
+
+  const ctxInsurance = document.getElementById('chartInsurance');
+  if (chartInsurance) {
+    chartInsurance.destroy();
+  }
+
+  chartInsurance = new Chart(ctxInsurance, {
+    type: 'pie',
+    data: {
+      labels: insuranceLabels,
+      datasets: [{
+        data: insuranceData,
+        backgroundColor: [
+          'rgba(216, 27, 96, 0.8)',
+          'rgba(236, 64, 122, 0.8)',
+          'rgba(173, 20, 87, 0.8)',
+          'rgba(255, 138, 176, 0.8)'
+        ],
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            font: {
+              size: 12
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Chart 4: Peak Hours (Bar Chart)
+  const hourCounts = {};
+  currentAppointments.forEach(a => {
+    const hour = a.time.split(':')[0]; // Get hour from time (HH:MM)
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  });
+
+  // Sort hours
+  const sortedHours = Object.keys(hourCounts).sort();
+  const hourData = sortedHours.map(h => hourCounts[h]);
+  const hourLabels = sortedHours.map(h => `${h}:00`);
+
+  const ctxPeakHours = document.getElementById('chartPeakHours');
+  if (chartPeakHours) {
+    chartPeakHours.destroy();
+  }
+
+  chartPeakHours = new Chart(ctxPeakHours, {
+    type: 'bar',
+    data: {
+      labels: hourLabels,
+      datasets: [{
+        label: 'Citas por Hora',
+        data: hourData,
+        backgroundColor: 'rgba(236, 64, 122, 0.7)',
+        borderColor: 'rgba(236, 64, 122, 1)',
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        },
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45
           }
         }
       }
@@ -550,6 +868,133 @@ window.deleteAppointment = async (id) => {
   }
 };
 
+// --- Edit Appointment Logic ---
+let currentEditingAppointment = null;
+
+window.editAppointment = async (id) => {
+  const appointment = currentAppointments.find(a => a.id === id);
+  if (!appointment) {
+    showToast('Cita no encontrada', 'error');
+    return;
+  }
+
+  currentEditingAppointment = appointment;
+  const modal = document.getElementById('editAppointmentModal');
+
+  // Populate specialty dropdown
+  const specialtySet = new Set(allSpecialists.map(s => s.specialty));
+  const editSpecialtySel = document.getElementById('editSpecialty');
+  editSpecialtySel.innerHTML = '<option value="" disabled>Seleccione Especialidad...</option>';
+
+  specialtySet.forEach(sp => {
+    const opt = document.createElement('option');
+    opt.value = sp;
+    opt.textContent = sp;
+    if (sp === appointment.specialty) {
+      opt.selected = true;
+    }
+    editSpecialtySel.appendChild(opt);
+  });
+
+  // Populate specialist dropdown based on selected specialty
+  const editSpecialistSel = document.getElementById('editSpecialist');
+  const filtered = allSpecialists.filter(s => s.specialty === appointment.specialty);
+  editSpecialistSel.innerHTML = '<option value="" disabled>Seleccione un especialista...</option>';
+
+  filtered.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    if (s.id === appointment.specialist_id) {
+      opt.selected = true;
+    }
+    editSpecialistSel.appendChild(opt);
+  });
+  editSpecialistSel.disabled = false;
+
+  // Populate form fields
+  document.getElementById('editApptId').value = appointment.id;
+  document.getElementById('editDate').value = appointment.date;
+  document.getElementById('editTime').value = appointment.time;
+  document.getElementById('editPatientName').value = appointment.patient_name;
+  document.getElementById('editPatientContact').value = appointment.patient_contact || '';
+  document.getElementById('editPatientInsurance').value = appointment.insurance || 'Fonasa';
+  document.getElementById('editPatientReason').value = appointment.reason || '';
+
+  modal.hidden = false;
+};
+
+// Edit modal close button
+document.getElementById('closeEditModal').addEventListener('click', () => {
+  document.getElementById('editAppointmentModal').hidden = true;
+  currentEditingAppointment = null;
+});
+
+// Handle specialty change in edit modal
+document.getElementById('editSpecialty').addEventListener('change', (e) => {
+  const selectedSpecialty = e.target.value;
+  const editSpecialistSel = document.getElementById('editSpecialist');
+
+  const filtered = allSpecialists.filter(s => s.specialty === selectedSpecialty);
+  editSpecialistSel.innerHTML = '<option value="" disabled selected>Seleccione un especialista...</option>';
+
+  filtered.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    editSpecialistSel.appendChild(opt);
+  });
+
+  editSpecialistSel.disabled = false;
+});
+
+// Handle edit form submission
+document.getElementById('editAppointmentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const id = Number(document.getElementById('editApptId').value);
+  const specialist_id = Number(document.getElementById('editSpecialist').value);
+  const date = document.getElementById('editDate').value;
+  const time = document.getElementById('editTime').value;
+  const patient_name = document.getElementById('editPatientName').value.trim();
+  const patient_contact = document.getElementById('editPatientContact').value.trim();
+  const insurance = document.getElementById('editPatientInsurance').value;
+  const reason = document.getElementById('editPatientReason').value.trim();
+
+  if (!specialist_id || !date || !time || !patient_name) {
+    showToast('Por favor complete todos los campos obligatorios', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetchJSON(`/api/appointments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        specialist_id,
+        date,
+        time,
+        patient_name,
+        patient_contact,
+        insurance,
+        reason
+      })
+    });
+
+    showToast('✅ Cita actualizada exitosamente');
+    document.getElementById('editAppointmentModal').hidden = true;
+    currentEditingAppointment = null;
+    await loadAppointments();
+
+    // Optionally open WhatsApp with updated info
+    if (res.whatsapp_url && confirm('¿Desea enviar confirmación por WhatsApp?')) {
+      window.open(res.whatsapp_url, '_blank');
+    }
+  } catch (err) {
+    showToast('Error al actualizar: ' + err.message, 'error');
+  }
+});
+
 async function loadAdminSpecialists() {
   const listEl = document.getElementById('specialistsList');
   listEl.innerHTML = '<p>Cargando...</p>';
@@ -610,10 +1055,95 @@ document.getElementById('specialistForm').addEventListener('submit', async (e) =
     document.getElementById('specialistForm').reset();
     loadAdminSpecialists();
     loadSpecialists();
+    populateManualAppointmentSpecialties(); // Update manual appointment form
   } catch (err) {
     showToast('Error al crear: ' + err.message, 'error');
   }
 });
+
+// --- Manual Appointment Creation Logic ---
+// Populate specialty dropdown for manual appointment form
+function populateManualAppointmentSpecialties() {
+  const specialtySet = new Set(allSpecialists.map(s => s.specialty));
+  const manualSpecialtySel = document.getElementById('manualSpecialty');
+  manualSpecialtySel.innerHTML = '<option value="" disabled selected>Seleccione Especialidad...</option>';
+
+  specialtySet.forEach(sp => {
+    const opt = document.createElement('option');
+    opt.value = sp;
+    opt.textContent = sp;
+    manualSpecialtySel.appendChild(opt);
+  });
+}
+
+// Handle specialty change in manual appointment form
+document.getElementById('manualSpecialty').addEventListener('change', (e) => {
+  const selectedSpecialty = e.target.value;
+  const manualSpecialistSel = document.getElementById('manualSpecialist');
+
+  const filtered = allSpecialists.filter(s => s.specialty === selectedSpecialty);
+  manualSpecialistSel.innerHTML = '<option value="" disabled selected>Seleccione un especialista...</option>';
+
+  filtered.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    manualSpecialistSel.appendChild(opt);
+  });
+
+  manualSpecialistSel.disabled = false;
+});
+
+// Handle manual appointment form submission
+document.getElementById('manualAppointmentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const specialist_id = Number(document.getElementById('manualSpecialist').value);
+  const date = document.getElementById('manualDate').value;
+  const time = document.getElementById('manualTime').value;
+  const patient_name = document.getElementById('manualPatientName').value.trim();
+  const patient_contact = document.getElementById('manualPatientContact').value.trim();
+  const insurance = document.getElementById('manualPatientInsurance').value;
+  const reason = document.getElementById('manualPatientReason').value.trim();
+
+  if (!specialist_id || !date || !time || !patient_name || !patient_contact) {
+    showToast('Por favor complete todos los campos obligatorios', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetchJSON('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        specialist_id,
+        date,
+        time,
+        patient_name,
+        patient_contact,
+        insurance,
+        reason
+      })
+    });
+
+    showToast('✅ Cita creada exitosamente');
+    document.getElementById('manualAppointmentForm').reset();
+
+    // Reset specialist dropdown
+    document.getElementById('manualSpecialist').disabled = true;
+    document.getElementById('manualSpecialist').innerHTML = '<option value="" disabled selected>Primero seleccione especialidad...</option>';
+
+    await loadAppointments();
+
+    // Optionally open WhatsApp with confirmation
+    if (res.whatsapp_url && confirm('¿Desea enviar confirmación por WhatsApp al paciente?')) {
+      window.open(res.whatsapp_url, '_blank');
+    }
+  } catch (err) {
+    showToast('Error al crear cita: ' + err.message, 'error');
+  }
+});
+
 
 // --- Init ---
 window.addEventListener('load', () => {
@@ -624,6 +1154,8 @@ window.addEventListener('load', () => {
   // Initial admin load (lazy load would be better but this is fine)
   loadAdminSpecialists();
   loadAppointments();
+  populateManualAppointmentSpecialties();
+  populateFilterSpecialists(); // Initialize filter dropdowns
 
   // --- Image Preview Logic ---
   const imgModal = document.getElementById('imageModal');

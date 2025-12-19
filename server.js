@@ -54,18 +54,31 @@ function initDb() {
       FOREIGN KEY(specialist_id) REFERENCES specialists(id)
     )`);
 
-    // Standardize hours for everyone on init
-    db.run("UPDATE specialists SET start_hour='08:00', end_hour='20:00'");
-
+    // Only seed initial specialists if database is empty
     db.get(`SELECT COUNT(*) as c FROM specialists`, (err, row) => {
       if (err) return console.error(err);
       if (row.c === 0) {
         const stmt = db.prepare(`INSERT INTO specialists (name, specialty, start_hour, end_hour, slot_minutes) VALUES (?, ?, ?, ?, ?)`);
-        stmt.run('Dr. Ana Pérez', 'Cardiología', '08:00', '20:00', 30);
-        stmt.run('Dr. Luis Martínez', 'Pediatría', '08:00', '20:00', 30);
-        stmt.run('Dra. Carmen Silva', 'Medicina General', '08:00', '20:00', 20);
+
+        // Kinesiólogos
+        stmt.run('Sebastian Davies Tapia', 'Kinesiología', '08:00', '20:00', 30);
+        stmt.run('Eric Farias Gajardo', 'Kinesiología', '08:00', '20:00', 30);
+
+        // Psicólogos
+        stmt.run('Estefania Zumaran', 'Psicología', '08:00', '20:00', 30);
+        stmt.run('Sussy Aquez Macaya', 'Psicología', '08:00', '20:00', 30);
+        stmt.run('Gonzalo Labarca', 'Psicología', '08:00', '20:00', 30);
+
+        // Fonoaudiólogo (a definir - placeholder)
+        stmt.run('Fonoaudiólogo (A definir)', 'Fonoaudiología', '08:00', '20:00', 30);
+
+        // Nutricionista (a definir - placeholder)
+        stmt.run('Nutricionista (A definir)', 'Nutrición', '08:00', '20:00', 30);
+
         stmt.finalize();
-        console.log('Seeded specialists');
+        console.log('✅ Base de datos inicializada con 7 especialistas de Kmina Salud');
+      } else {
+        console.log(`✅ Base de datos cargada: ${row.c} especialista(s) encontrado(s)`);
       }
     });
   });

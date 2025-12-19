@@ -1,0 +1,42 @@
+#!/bin/bash
+
+echo "========================================"
+echo " RESETEAR BASE DE DATOS - KMINA SALUD"
+echo "========================================"
+echo ""
+echo "Este script eliminará la base de datos actual"
+echo "y creará una nueva con los especialistas reales."
+echo ""
+echo "Especialistas que se agregarán:"
+echo ""
+echo "KINESIOLOGÍA:"
+echo "  - Sebastian Davies Tapia"
+echo "  - Eric Farias Gajardo"
+echo ""
+echo "PSICOLOGÍA:"
+echo "  - Estefania Zumaran"
+echo "  - Sussy Aquez Macaya"
+echo "  - Gonzalo Labarca"
+echo ""
+echo "FONOAUDIOLOGÍA:"
+echo "  - Fonoaudiólogo (A definir)"
+echo ""
+echo "NUTRICIÓN:"
+echo "  - Nutricionista (A definir)"
+echo ""
+echo "========================================"
+echo ""
+read -p "Presiona Enter para continuar o Ctrl+C para cancelar..."
+echo ""
+echo "Eliminando base de datos antigua..."
+if [ -f database.db ]; then
+    rm database.db
+    echo "✅ Base de datos eliminada."
+else
+    echo "ℹ️  No se encontró base de datos anterior."
+fi
+echo ""
+echo "Iniciando servidor para crear nueva base de datos..."
+echo "Presiona Ctrl+C cuando veas el mensaje de confirmación."
+echo ""
+node server.js
