@@ -121,6 +121,10 @@ async function loadSpecialists() {
     specialistSel.innerHTML = '<option value="" disabled selected>Primero seleccione especialidad...</option>';
     specialistSel.disabled = true;
 
+    // Populate admin dropdowns after specialists are loaded
+    populateManualAppointmentSpecialties();
+    populateFilterSpecialists();
+
   } catch (err) {
     showToast('Error cargando datos: ' + err.message, 'error');
   }
@@ -1154,8 +1158,6 @@ window.addEventListener('load', () => {
   // Initial admin load (lazy load would be better but this is fine)
   loadAdminSpecialists();
   loadAppointments();
-  populateManualAppointmentSpecialties();
-  populateFilterSpecialists(); // Initialize filter dropdowns
 
   // --- Image Preview Logic ---
   const imgModal = document.getElementById('imageModal');
