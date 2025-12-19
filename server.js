@@ -153,6 +153,12 @@ app.get('/api/specialists/:id/slots', (req, res) => {
   const date = req.query.date;
   if (!date) return sendError(res, 400, 'Se requiere query param date=YYYY-MM-DD');
 
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    return res.json({ date, slots: [] }); // Return empty slots for past dates instead of error
+  }
+
   db.get('SELECT * FROM specialists WHERE id = ?', [specialistId], (err, specialist) => {
     if (err) return sendError(res, 500, err.message);
     if (!specialist) return sendError(res, 404, 'Especialista no encontrado');
@@ -212,6 +218,13 @@ app.post('/api/appointments', (req, res) => {
     return sendError(res, 400, 'Faltan campos: specialist_id, date, time, patient_name');
   }
 
+  // Prevent back-dated appointments
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    return sendError(res, 400, 'No se puede agendar para una fecha pasada');
+  }
+
   // Check overlap
   db.get('SELECT COUNT(*) as c FROM appointments WHERE specialist_id = ? AND date = ? AND time = ?', [specialist_id, date, time], (err, row) => {
     if (err) return sendError(res, 500, err.message);
@@ -237,6 +250,13 @@ app.put('/api/appointments/:id', (req, res) => {
   const id = Number(req.params.id);
   const { specialist_id, date, time, patient_name, patient_contact, reason, insurance } = req.body;
   if (!specialist_id || !date || !time || !patient_name) return sendError(res, 400, 'Faltan campos');
+
+  // Prevent back-dated appointments
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    return sendError(res, 400, 'No se puede agendar para una fecha pasada');
+  }
 
   // Check overlap excluding current appointment
   db.get('SELECT COUNT(*) as c FROM appointments WHERE specialist_id = ? AND date = ? AND time = ? AND id != ?', [specialist_id, date, time, id], (err, row) => {

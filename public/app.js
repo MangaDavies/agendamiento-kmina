@@ -157,6 +157,12 @@ document.getElementById('checkSlots').addEventListener('click', async () => {
 
   if (!specialistId || !date) return showToast('Seleccione especialista y fecha', 'error');
 
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    return showToast('No se puede buscar horarios para una fecha pasada', 'error');
+  }
+
   try {
     list.innerHTML = '<p>Cargando...</p>';
     container.hidden = false;
@@ -970,6 +976,13 @@ document.getElementById('editAppointmentForm').addEventListener('submit', async 
     return;
   }
 
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    showToast('No se puede actualizar a una fecha pasada', 'error');
+    return;
+  }
+
   try {
     const res = await fetchJSON(`/api/appointments/${id}`, {
       method: 'PUT',
@@ -1115,6 +1128,13 @@ document.getElementById('manualAppointmentForm').addEventListener('submit', asyn
     return;
   }
 
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  if (date < today) {
+    showToast('No se puede crear una cita en una fecha pasada', 'error');
+    return;
+  }
+
   try {
     const res = await fetchJSON('/api/appointments', {
       method: 'POST',
@@ -1151,6 +1171,15 @@ document.getElementById('manualAppointmentForm').addEventListener('submit', asyn
 
 // --- Init ---
 window.addEventListener('load', () => {
+  // Set min date for all booking inputs to today
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const dateInputs = ['date', 'manualDate', 'editDate'];
+  dateInputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.min = today;
+  });
+
   loadSpecialists();
   // Check hash to see if we should start in admin, mostly for dev convenience
   if (window.location.hash === '#admin') switchTab('admin');
