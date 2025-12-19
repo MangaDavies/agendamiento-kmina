@@ -12,6 +12,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -202,42 +203,86 @@
 
     <!-- ADMIN SECTION: MANAGE -->
     <section id="sectionAdmin" class="fade-in" hidden>
-      <div class="admin-grid">
 
-        <!-- Dashboard / Summary -->
-        <div class="card">
-          <div class="card-header">
-            <h2>Resumen de Atenciones</h2>
-            <button id="exportExcel" class="btn btn-sm btn-primary">Exportar a Excel</button>
-          </div>
-          <div id="dashboardStats" class="table-responsive">
-            <!-- Stats injected here -->
-            <p>Calculando...</p>
+      <!-- KPI Cards Row -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-content">
+            <h3 id="kpiTotalCitas">0</h3>
+            <p>Total Citas</p>
           </div>
         </div>
-
-        <!-- Manage Appointments -->
-        <div class="card">
-          <div class="card-header">
-            <h2>Gestión de Citas</h2>
-            <button id="refreshAppts" class="btn btn-sm btn-outline">Actualizar</button>
+        <div class="kpi-card">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-content">
+            <h3 id="kpiTotalPacientes">0</h3>
+            <p>Pacientes Únicos</p>
           </div>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Hora</th>
-                  <th>Especialista</th>
-                  <th>Paciente</th>
-                  <th>Contacto</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="appointmentsList">
-                <!-- Rows injected by JS -->
-              </tbody>
-            </table>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🩺</div>
+          <div class="kpi-content">
+            <h3 id="kpiEspecialistas">0</h3>
+            <p>Especialistas</p>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-content">
+            <h3 id="kpiHoy">0</h3>
+            <p>Citas Hoy</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2>Citas por Especialista</h2>
+          </div>
+          <canvas id="chartSpecialists"></canvas>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2>Tendencia Semanal</h2>
+          </div>
+          <canvas id="chartWeekly"></canvas>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="admin-main-grid">
+
+        <!-- Left Column: Appointments Table -->
+        <div class="admin-left-col">
+          <div class="card">
+            <div class="card-header">
+              <h2>Gestión de Citas</h2>
+              <div class="header-actions">
+                <button id="refreshAppts" class="btn btn-sm btn-outline">🔄 Actualizar</button>
+                <button id="exportExcel" class="btn btn-sm btn-primary">📊 Exportar Excel</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table compact-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Especialista</th>
+                    <th>Paciente</th>
+                    <th>Contacto</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="appointmentsList">
+                  <!-- Rows injected by JS -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -245,17 +290,17 @@
         <div class="admin-right-col">
 
           <!-- Specialist List -->
-          <div class="card">
+          <div class="card compact-card">
             <div class="card-header">
               <h2>Especialistas</h2>
-              <button id="refreshSpecs" class="btn btn-sm btn-outline">Actualizar</button>
+              <button id="refreshSpecs" class="btn btn-sm btn-outline">🔄</button>
             </div>
             <ul id="specialistsList" class="simple-list"></ul>
           </div>
 
           <!-- Create Specialist -->
-          <div class="card">
-            <h2>Agregar Especialista</h2>
+          <div class="card compact-card">
+            <h2>➕ Agregar Especialista</h2>
             <form id="specialistForm">
               <div class="form-group">
                 <label>Nombre</label>

@@ -268,57 +268,203 @@ async function loadAppointments() {
   }
 }
 
+// Chart instances (global to allow updates)
+let chartSpecialists = null;
+let chartWeekly = null;
+
 function loadDashboard() {
-  const statsDiv = document.getElementById('dashboardStats');
   if (currentAppointments.length === 0) {
-    statsDiv.innerHTML = '<p>Sin datos para mostrar.</p>';
+    // Reset KPIs
+    document.getElementById('kpiTotalCitas').textContent = '0';
+    document.getElementById('kpiTotalPacientes').textContent = '0';
+    document.getElementById('kpiEspecialistas').textContent = allSpecialists.length || '0';
+    document.getElementById('kpiHoy').textContent = '0';
     return;
   }
 
-  // Groupping by Specialist + Date
-  const counts = {};
+  // Calculate KPIs
+  const totalCitas = currentAppointments.length;
+  const uniquePatients = new Set(currentAppointments.map(a => a.patient_name.toLowerCase())).size;
+  const today = new Date().toISOString().split('T')[0];
+  const citasHoy = currentAppointments.filter(a => a.date === today).length;
+
+  // Update KPI Cards
+  document.getElementById('kpiTotalCitas').textContent = totalCitas;
+  document.getElementById('kpiTotalPacientes').textContent = uniquePatients;
+  document.getElementById('kpiEspecialistas').textContent = allSpecialists.length || '0';
+  document.getElementById('kpiHoy').textContent = citasHoy;
+
+  // Prepare data for charts
+  updateCharts();
+}
+
+function updateCharts() {
+  // Chart 1: Citas por Especialista (Bar Chart)
+  const specialistCounts = {};
   currentAppointments.forEach(a => {
-    // Key: "Dr. Name||2023-10-27"
-    const key = `${a.specialist_name}||${a.date}`;
-    counts[key] = (counts[key] || 0) + 1;
+    const name = a.specialist_name || 'Sin asignar';
+    specialistCounts[name] = (specialistCounts[name] || 0) + 1;
   });
 
-  // Convert to sorted array
-  const sortedStats = Object.entries(counts).map(([key, count]) => {
-    const [name, date] = key.split('||');
-    return { name, date, count };
-  }).sort((a, b) => {
-    if (a.name < b.name) return -1;
-    if (a.name > b.name) return 1;
-    if (a.date < b.date) return -1;
-    if (a.date > b.date) return 1;
-    return 0;
+  const specialistLabels = Object.keys(specialistCounts);
+  const specialistData = Object.values(specialistCounts);
+
+  const ctxSpecialists = document.getElementById('chartSpecialists');
+  if (chartSpecialists) {
+    chartSpecialists.destroy();
+  }
+
+  chartSpecialists = new Chart(ctxSpecialists, {
+    type: 'bar',
+    data: {
+      labels: specialistLabels,
+      datasets: [{
+        label: 'Número de Citas',
+        data: specialistData,
+        backgroundColor: 'rgba(216, 27, 96, 0.7)',
+        borderColor: 'rgba(216, 27, 96, 1)',
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
   });
 
-  let html = '<table class="data-table"><thead><tr><th>Especialista</th><th>Fecha</th><th>Citas</th></tr></thead><tbody>';
-  sortedStats.forEach(stat => {
-    html += `<tr><td>${stat.name}</td><td>${stat.date}</td><td><strong>${stat.count}</strong></td></tr>`;
+  // Chart 2: Tendencia Semanal (Line Chart)
+  const dateCounts = {};
+  currentAppointments.forEach(a => {
+    dateCounts[a.date] = (dateCounts[a.date] || 0) + 1;
   });
-  html += '</tbody></table>';
-  statsDiv.innerHTML = html;
+
+  // Sort dates and get last 7 days or available dates
+  const sortedDates = Object.keys(dateCounts).sort();
+  const last7Dates = sortedDates.slice(-7);
+  const weeklyData = last7Dates.map(date => dateCounts[date]);
+
+  const ctxWeekly = document.getElementById('chartWeekly');
+  if (chartWeekly) {
+    chartWeekly.destroy();
+  }
+
+  chartWeekly = new Chart(ctxWeekly, {
+    type: 'line',
+    data: {
+      labels: last7Dates,
+      datasets: [{
+        label: 'Citas por Día',
+        data: weeklyData,
+        backgroundColor: 'rgba(236, 64, 122, 0.2)',
+        borderColor: 'rgba(236, 64, 122, 1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgba(216, 27, 96, 1)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
 }
 
 document.getElementById('exportExcel').addEventListener('click', () => {
   if (currentAppointments.length === 0) return showToast('No hay datos para exportar', 'error');
 
-  // 1. Prepare Data for "Detalle" Sheet
-  const detailData = currentAppointments.map(a => ({
-    Fecha: a.date,
-    Hora: a.time,
-    Especialista: a.specialist_name,
-    Especialidad: a.specialty,
-    Paciente: a.patient_name,
-    Prevision: a.insurance || '-',
-    Contacto: a.patient_contact || '-',
-    Motivo: a.reason || '-'
-  }));
+  if (typeof XLSX === 'undefined') return showToast('Error: Librería Excel no cargada. Recargue la página.', 'error');
 
-  // 2. Prepare Data for "Resumen" Sheet (Dashboard Stats - Grouped by Specialist & Date)
+  const wb = XLSX.utils.book_new();
+  const today = new Date().toISOString().split('T')[0];
+
+  // ===== SHEET 1: KPIs y Resumen Ejecutivo =====
+  const totalCitas = currentAppointments.length;
+  const uniquePatients = new Set(currentAppointments.map(a => a.patient_name.toLowerCase())).size;
+  const citasHoy = currentAppointments.filter(a => a.date === today).length;
+  const totalEspecialistas = allSpecialists.length || 0;
+
+  const kpiData = [
+    ['REPORTE KMINA SALUD - DASHBOARD EJECUTIVO'],
+    ['Generado:', new Date().toLocaleString('es-CL')],
+    [''],
+    ['INDICADORES CLAVE (KPIs)'],
+    ['Métrica', 'Valor'],
+    ['📅 Total Citas', totalCitas],
+    ['👥 Pacientes Únicos', uniquePatients],
+    ['🩺 Especialistas Activos', totalEspecialistas],
+    ['📊 Citas Hoy', citasHoy],
+    [''],
+    ['CITAS POR ESPECIALISTA'],
+    ['Especialista', 'Total Citas']
+  ];
+
+  // Agregar conteo por especialista
+  const specialistCounts = {};
+  currentAppointments.forEach(a => {
+    const name = a.specialist_name || 'Sin asignar';
+    specialistCounts[name] = (specialistCounts[name] || 0) + 1;
+  });
+
+  Object.entries(specialistCounts).sort((a, b) => b[1] - a[1]).forEach(([name, count]) => {
+    kpiData.push([name, count]);
+  });
+
+  kpiData.push(['']);
+  kpiData.push(['TENDENCIA ÚLTIMOS 7 DÍAS']);
+  kpiData.push(['Fecha', 'Citas']);
+
+  // Agregar tendencia de últimos 7 días
+  const dateCounts = {};
+  currentAppointments.forEach(a => {
+    dateCounts[a.date] = (dateCounts[a.date] || 0) + 1;
+  });
+
+  const sortedDates = Object.keys(dateCounts).sort();
+  const last7Dates = sortedDates.slice(-7);
+  last7Dates.forEach(date => {
+    kpiData.push([date, dateCounts[date]]);
+  });
+
+  const wsKPI = XLSX.utils.aoa_to_sheet(kpiData);
+
+  // Estilos para la hoja de KPIs
+  wsKPI['!cols'] = [{ wch: 30 }, { wch: 15 }];
+
+  XLSX.utils.book_append_sheet(wb, wsKPI, "Dashboard");
+
+  // ===== SHEET 2: Resumen por Especialista y Fecha =====
   const counts = {};
   currentAppointments.forEach(a => {
     const key = `${a.specialist_name}||${a.date}`;
@@ -340,26 +486,57 @@ document.getElementById('exportExcel').addEventListener('click', () => {
     return 0;
   });
 
-  // 3. Create Workbook & Sheets using SheetJS (XLSX)
-  if (typeof XLSX === 'undefined') return showToast('Error: Librería Excel no cargada. Recargue la página.', 'error');
-
-  const wb = XLSX.utils.book_new();
-
-  // Sheet 1: Resumen Diario
   const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen Diario");
+  wsSummary['!cols'] = [{ wch: 25 }, { wch: 12 }, { wch: 15 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen por Fecha");
 
-  // Sheet 2: Detalle Completo
+  // ===== SHEET 3: Detalle Completo de Citas =====
+  const detailData = currentAppointments.map(a => ({
+    Fecha: a.date,
+    Hora: a.time,
+    Especialista: a.specialist_name,
+    Especialidad: a.specialty,
+    Paciente: a.patient_name,
+    'Previsión': a.insurance || '-',
+    Contacto: a.patient_contact || '-',
+    'Motivo Consulta': a.reason || '-'
+  }));
+
   const wsDetail = XLSX.utils.json_to_sheet(detailData);
-  // Auto-width adjustment (simple heuristic)
-  const wscols = [
-    { wch: 12 }, { wch: 8 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 15 }, { wch: 30 }
+  wsDetail['!cols'] = [
+    { wch: 12 }, // Fecha
+    { wch: 8 },  // Hora
+    { wch: 22 }, // Especialista
+    { wch: 20 }, // Especialidad
+    { wch: 22 }, // Paciente
+    { wch: 12 }, // Previsión
+    { wch: 15 }, // Contacto
+    { wch: 35 }  // Motivo
   ];
-  wsDetail['!cols'] = wscols;
   XLSX.utils.book_append_sheet(wb, wsDetail, "Detalle Completo");
 
-  // 4. Download file
-  XLSX.writeFile(wb, "Reporte_Gestion_Kmina_Detallado.xlsx");
+  // ===== SHEET 4: Estadísticas por Previsión =====
+  const insuranceCounts = {};
+  currentAppointments.forEach(a => {
+    const insurance = a.insurance || 'Sin especificar';
+    insuranceCounts[insurance] = (insuranceCounts[insurance] || 0) + 1;
+  });
+
+  const insuranceData = Object.entries(insuranceCounts).map(([insurance, count]) => ({
+    'Tipo Previsión': insurance,
+    'Cantidad': count,
+    'Porcentaje': ((count / totalCitas) * 100).toFixed(1) + '%'
+  })).sort((a, b) => b.Cantidad - a.Cantidad);
+
+  const wsInsurance = XLSX.utils.json_to_sheet(insuranceData);
+  wsInsurance['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, wsInsurance, "Por Previsión");
+
+  // Descargar archivo
+  const fileName = `Reporte_Kmina_${today}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+
+  showToast('Excel exportado exitosamente', 'success');
 });
 
 window.deleteAppointment = async (id) => {

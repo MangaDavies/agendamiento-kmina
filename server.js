@@ -105,7 +105,7 @@ app.post('/api/specialists', (req, res) => {
 // --- Login Endpoint (Simple) ---
 app.post('/api/login', (req, res) => {
   const { password } = req.body;
-  if (password === 'admin') {
+  if (password === 'Kmina.2026$$') {
     res.json({ success: true });
   } else {
     sendError(res, 401, 'Contraseña incorrecta');
