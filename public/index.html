@@ -353,49 +353,10 @@
           </div>
         </div>
 
-        <!-- Right Column: Specialists Management -->
+        <!-- Right Column: Quick Actions -->
         <div class="admin-right-col">
 
-          <!-- Specialist List -->
-          <div class="card compact-card">
-            <div class="card-header">
-              <h2>Especialistas</h2>
-              <button id="refreshSpecs" class="btn btn-sm btn-outline">🔄</button>
-            </div>
-            <ul id="specialistsList" class="simple-list"></ul>
-          </div>
-
-          <!-- Create Specialist -->
-          <div class="card compact-card">
-            <h2>➕ Agregar Especialista</h2>
-            <form id="specialistForm">
-              <div class="form-group">
-                <label>Nombre</label>
-                <input id="spName" class="input-field" required>
-              </div>
-              <div class="form-group">
-                <label>Especialidad</label>
-                <input id="spSpecialty" class="input-field" required>
-              </div>
-              <div class="row">
-                <div class="form-group">
-                  <label>Inicio</label>
-                  <input id="spStart" class="input-field" placeholder="08:00" required pattern="\d{2}:\d{2}">
-                </div>
-                <div class="form-group">
-                  <label>Fin</label>
-                  <input id="spEnd" class="input-field" placeholder="20:00" required pattern="\d{2}:\d{2}">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Duración Bloque (min)</label>
-                <input id="spSlot" type="number" class="input-field" value="30">
-              </div>
-              <button type="submit" class="btn btn-secondary full-width">Crear Especialista</button>
-            </form>
-          </div>
-
-          <!-- Create Appointment Manually -->
+          <!-- Create Appointment Manually - PRIMERA OPCIÓN -->
           <div class="card compact-card">
             <h2>📞 Agendar Cita Manual</h2>
             <p style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 15px;">Para pacientes que llaman por teléfono
@@ -451,6 +412,45 @@
               </div>
 
               <button type="submit" class="btn btn-primary full-width">📅 Crear Cita</button>
+            </form>
+          </div>
+
+          <!-- Specialist List -->
+          <div class="card compact-card">
+            <div class="card-header">
+              <h2>Especialistas</h2>
+              <button id="refreshSpecs" class="btn btn-sm btn-outline">🔄</button>
+            </div>
+            <ul id="specialistsList" class="simple-list"></ul>
+          </div>
+
+          <!-- Create Specialist -->
+          <div class="card compact-card">
+            <h2>➕ Agregar Especialista</h2>
+            <form id="specialistForm">
+              <div class="form-group">
+                <label>Nombre</label>
+                <input id="spName" class="input-field" required>
+              </div>
+              <div class="form-group">
+                <label>Especialidad</label>
+                <input id="spSpecialty" class="input-field" required>
+              </div>
+              <div class="row">
+                <div class="form-group">
+                  <label>Inicio</label>
+                  <input id="spStart" class="input-field" placeholder="08:00" required pattern="\d{2}:\d{2}">
+                </div>
+                <div class="form-group">
+                  <label>Fin</label>
+                  <input id="spEnd" class="input-field" placeholder="20:00" required pattern="\d{2}:\d{2}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Duración Bloque (min)</label>
+                <input id="spSlot" type="number" class="input-field" value="30">
+              </div>
+              <button type="submit" class="btn btn-secondary full-width">Crear Especialista</button>
             </form>
           </div>
 
